@@ -319,7 +319,25 @@ function initPlay(){
     saveSeq();
   }
   done=[];skipped=[];tapped=false;
+  // Pré-chauffage silencieux de la synthèse vocale
+  // pour éliminer la latence au premier vrai appel
+  prewarmSpeech();
   renderPlay();
+}
+
+function prewarmSpeech(){
+  if(!window.speechSynthesis)return;
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(' ');
+    u.volume=0;u.rate=2;u.lang='fr-FR';
+    if(voicesFR.length){
+      const local=voicesFR.find(v=>v.localService&&v.lang.toLowerCase().startsWith('fr'));
+      u.voice=local||voicesFR[0];
+    }
+    window.speechSynthesis.speak(u);
+    spkUnlocked=true;
+  }catch(e){}
 }
 
 function remaining(){return seq.map((t,i)=>({...t,oi:i})).filter((_,i)=>!done.includes(i)&&!skipped.includes(i));}
