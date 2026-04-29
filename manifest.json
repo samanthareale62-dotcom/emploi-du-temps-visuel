@@ -1,0 +1,39 @@
+{
+  "name": "Emploi du Temps Visuel",
+  "short_name": "EDT Visuel",
+  "description": "Emploi du temps visuel pour enfants TSA/IME",
+  "start_url": ".",
+  "id": "emploi-du-temps-visuel",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#a8d5a2",
+  "theme_color": "#a8d5a2",
+  "lang": "fr",
+  "categories": ["education", "health"],
+  "icons": [
+    { "src": "icons/icon-72.png",  "sizes": "72x72",  "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-96.png",  "sizes": "96x96",  "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-128.png", "sizes": "128x128","type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-144.png", "sizes": "144x144","type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192","type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512","type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192","type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512","type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Emploi du temps visuel"
+    },
+    {
+      "src": "icons/screenshot-narrow.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Emploi du temps visuel"
+    }
+  ]
+}
