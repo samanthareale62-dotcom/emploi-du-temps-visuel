@@ -226,7 +226,7 @@ html,body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color
       <div class="apt">➕ Ajouter un pictogramme</div>
       <div class="pb2" id="pb2"></div>
       <label class="cub" for="fi">📷 Ajouter depuis la galerie <span id="upload-hint" style="font-size:.7rem;opacity:.7;">(sélection multiple possible)</span></label>
-      <input type="file" id="fi" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" multiple capture="false" onchange="upload(event)">
+      <input type="file" id="fi" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" multiple onchange="upload(event)">
       <div id="upload-progress" style="display:none;margin-top:.5rem;background:var(--gl);border-radius:8px;padding:.5rem .7rem;font-size:.78rem;color:var(--gd);font-weight:600;text-align:center;"></div>
     </div>
   </div>
