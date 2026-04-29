@@ -1,6 +1,6 @@
 <!--
   Emploi du Temps Visuel — Application TSA/IME
-  © 2025 — Tous droits réservés
+  © 2026 Reale Samantha — Tous droits réservés
   Développé pour usage en établissement médico-social
 -->
 <!DOCTYPE html>
@@ -422,13 +422,11 @@ function initVoices(){
 function unlockSpeech(){
   if(spkUnlocked||!window.speechSynthesis)return;
   spkUnlocked=true;
-  // Utterance avec espace : les WebViews ignorent les chaînes vides
   try{
     const u=new SpeechSynthesisUtterance(' ');
     u.volume=0;u.rate=2;
     window.speechSynthesis.speak(u);
   }catch(e){}
-  // Re-charger les voix après interaction utilisateur (nécessaire sur Android)
   setTimeout(()=>{
     const all=window.speechSynthesis.getVoices();
     if(all.length){
@@ -441,10 +439,10 @@ function unlockSpeech(){
 
 function spk(txt){
   if(!window.speechSynthesis||!txt)return;
-  // S'assurer que l'unlock a eu lieu
   unlockSpeech();
   try{window.speechSynthesis.cancel();}catch(e){}
-  // Délai après cancel — WebView Android nécessite 300ms minimum
+  // Délai réduit à 80ms — suffisant après unlock initial
+  const delay=spkUnlocked?80:300;
   setTimeout(()=>{
     try{
       const u=new SpeechSynthesisUtterance(txt);
@@ -452,17 +450,12 @@ function spk(txt){
       u.rate=0.85;
       u.pitch=1.1;
       u.volume=1;
-      // Préférer voix locale française (fonctionne hors connexion)
       if(voicesFR.length){
         const local=voicesFR.find(v=>v.localService&&v.lang.toLowerCase().startsWith('fr'));
         u.voice=local||voicesFR[0];
       }
-      // Watchdog : débloquer si la WebView se fige (bug connu Android)
-      const wd=setTimeout(()=>{
-        try{window.speechSynthesis.cancel();}catch(e){}
-      },8000);
+      const wd=setTimeout(()=>{try{window.speechSynthesis.cancel();}catch(e){}},8000);
       u.onend=()=>clearTimeout(wd);
-      // Retry sans voix assignée si erreur (voix corrompue ou absente)
       u.onerror=()=>{
         clearTimeout(wd);
         setTimeout(()=>{
@@ -475,7 +468,7 @@ function spk(txt){
       };
       window.speechSynthesis.speak(u);
     }catch(e){}
-  },300);
+  },delay);
 }
 
 function renderEdit(){
@@ -701,7 +694,7 @@ function toast(msg){
   }
 })();
 </script>
-<div class="copyright">© 2025 Emploi du Temps Visuel — Application TSA/IME — Tous droits réservés</div>
+<div class="copyright">© 2026 — Emploi du Temps Visuel TSA/IME — Reale Samantha</div>
 
 </body>
 </html>
