@@ -365,15 +365,14 @@ function initPlay(){
 
 function prewarmSpeech(){
   if(!window.speechSynthesis)return;
+  // Recharger les voix sans émettre de son — évite les déclenchements parasites
   try{
-    window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(' ');
-    u.volume=0;u.rate=2;u.lang='fr-FR';
-    if(voicesFR.length){
-      const local=voicesFR.find(v=>v.localService&&v.lang.toLowerCase().startsWith('fr'));
-      u.voice=local||voicesFR[0];
+    const all=window.speechSynthesis.getVoices();
+    if(all.length){
+      voicesFR=all.filter(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));
+      if(!voicesFR.length)voicesFR=all;
+      spkReady=true;
     }
-    window.speechSynthesis.speak(u);
     spkUnlocked=true;
   }catch(e){}
 }
@@ -402,7 +401,7 @@ function renderPlay(){
     d.innerHTML=thumbSm(t,40)+'<div class="tl">'+t.l+'</div><div class="xov"><div class="xl"></div><div class="xl xl2"></div></div>';
     dol.appendChild(d);
   });
-  tapped=false;transitioning=false;stopTimer();
+  tapped=false;transitioning=false;spkLock=false;stopTimer();
   document.getElementById('hint').textContent='Toucher pour lire le nom';
   document.getElementById('ciw').className='ciw';
   document.getElementById('cbig').className='cbig';
@@ -433,11 +432,13 @@ function tap(){
   const ct=curTask();if(!ct)return;
   if(!tapped){
     tapped=true;
+    spkLock=false; // Libérer le verrou avant de lire le nom
     spk(ct.l);
     document.getElementById('hint').textContent='Toucher à nouveau pour terminer';
   }else{
     transitioning=true;
     tapped=false;
+    spkLock=false; // Libérer le verrou avant de dire 'Fini'
     document.getElementById('ciw').classList.add('cx');
     document.getElementById('cbig').classList.add('on');
     spk('Fini');
@@ -510,7 +511,6 @@ function updateTimerDisplay(){
 function playBip(){
   try{
     const ctx=new (window.AudioContext||window.webkitAudioContext)();
-    const endTime=ctx.currentTime+0.95;
     [0,0.35,0.7].forEach(t=>{
       const osc=ctx.createOscillator();
       const gain=ctx.createGain();
@@ -521,7 +521,6 @@ function playBip(){
       osc.start(ctx.currentTime+t);
       osc.stop(ctx.currentTime+t+0.25);
     });
-    // Fermer le contexte audio après la fin des bips pour libérer la mémoire
     setTimeout(()=>{try{ctx.close();}catch(e){}},1200);
   }catch(e){}
 }
@@ -564,28 +563,30 @@ function initVoices(){
 function unlockSpeech(){
   if(spkUnlocked||!window.speechSynthesis)return;
   spkUnlocked=true;
-  try{
-    const u=new SpeechSynthesisUtterance(' ');
-    u.volume=0;u.rate=2;
-    window.speechSynthesis.speak(u);
-  }catch(e){}
+  // Recharger les voix après interaction — sans émettre de son parasite
   setTimeout(()=>{
-    const all=window.speechSynthesis.getVoices();
-    if(all.length){
-      voicesFR=all.filter(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));
-      if(!voicesFR.length)voicesFR=all;
-      spkReady=true;
-    }
-  },400);
+    try{
+      const all=window.speechSynthesis.getVoices();
+      if(all.length){
+        voicesFR=all.filter(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));
+        if(!voicesFR.length)voicesFR=all;
+        spkReady=true;
+      }
+    }catch(e){}
+  },200);
 }
+
+let spkLock=false;
 
 function spk(txt){
   if(!window.speechSynthesis||!txt)return;
-  const wasUnlocked=spkUnlocked;
   unlockSpeech();
   try{window.speechSynthesis.cancel();}catch(e){}
-  const delay=wasUnlocked?80:300;
-  setTimeout(()=>{
+  spkLock=false;
+  clearTimeout(spk._t);
+  spk._t=setTimeout(()=>{
+    if(spkLock)return;
+    spkLock=true;
     try{
       const u=new SpeechSynthesisUtterance(txt);
       u.lang='fr-FR';
@@ -596,21 +597,27 @@ function spk(txt){
         const local=voicesFR.find(v=>v.localService&&v.lang.toLowerCase().startsWith('fr'));
         u.voice=local||voicesFR[0];
       }
-      const wd=setTimeout(()=>{try{window.speechSynthesis.cancel();}catch(e){}},8000);
-      u.onend=()=>clearTimeout(wd);
+      // Watchdog si la synthèse se bloque
+      const wd=setTimeout(()=>{
+        try{window.speechSynthesis.cancel();}catch(e){}
+        spkLock=false;
+      },8000);
+      // Un seul onend — efface le watchdog et libère le verrou
+      u.onend=()=>{clearTimeout(wd);spkLock=false;};
       u.onerror=()=>{
         clearTimeout(wd);
-        setTimeout(()=>{
-          try{
-            const u2=new SpeechSynthesisUtterance(txt);
-            u2.lang='fr-FR';u2.rate=0.85;u2.volume=1;
-            window.speechSynthesis.speak(u2);
-          }catch(e2){}
-        },200);
+        spkLock=false;
+        // Retry sans voix assignée
+        try{
+          const u2=new SpeechSynthesisUtterance(txt);
+          u2.lang='fr-FR';u2.rate=0.85;u2.volume=1;
+          u2.onend=()=>{spkLock=false;};
+          window.speechSynthesis.speak(u2);
+        }catch(e2){}
       };
       window.speechSynthesis.speak(u);
-    }catch(e){}
-  },delay);
+    }catch(e){spkLock=false;}
+  },80);
 }
 
 function renderEdit(){
