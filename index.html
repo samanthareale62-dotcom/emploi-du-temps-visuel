@@ -82,6 +82,22 @@ html,body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color
 .pbp{background:var(--ol);color:var(--od);}
 .pbf{background:var(--vl);color:var(--vd);}
 .pbs{background:var(--redl);color:var(--red);}
+/* ── TIMER ── */
+.timer-wrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;width:78%;}
+.timer-input-row{display:flex;align-items:center;gap:.5rem;}
+.tmr-input{width:70px;border:2px solid var(--red);border-radius:10px;padding:.35rem .5rem;font-size:1rem;font-weight:700;color:var(--red);text-align:center;background:var(--redl);}
+.tmr-input:focus{outline:none;border-color:var(--cd);}
+.tmr-label{font-size:.78rem;font-weight:600;color:var(--tm);}
+.tmr-start{background:var(--red);color:white;border:none;border-radius:10px;padding:.4rem .9rem;font-size:.82rem;font-weight:700;cursor:pointer;transition:transform .15s;}
+.tmr-start:active{transform:scale(.93);}
+.tmr-display{display:none;flex-direction:column;align-items:center;gap:.5rem;}
+.tmr-display.on{display:flex;}
+.tmr-ring-wrap{position:relative;width:160px;height:160px;}
+.tmr-ring-wrap svg{transform:rotate(-90deg);}
+.tmr-circle-bg{fill:none;stroke:var(--redl);stroke-width:10;}
+.tmr-circle-fg{fill:none;stroke:var(--red);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .9s linear;}
+.tmr-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;color:var(--red);}
+.tmr-stop{background:var(--redl);color:var(--red);border:1.5px solid var(--red);border-radius:8px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;}
 #D{background:var(--gl);align-items:center;justify-content:center;gap:1.2rem;}
 .dbi{font-size:4.5rem;}
 .dmsg{font-size:1.8rem;font-weight:800;color:var(--gd);text-align:center;}
@@ -175,13 +191,35 @@ html,body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color
         <div class="prgt" id="pgt">0 / 0</div>
       </div>
       <div class="cta" id="cta" onclick="tap()">
-        <div class="ciw" id="ciw">
-          <div id="cem" style="font-size:10rem;display:flex;align-items:center;justify-content:center;"></div>
-          <img id="cim" src="" alt="" style="display:none;width:290px;height:290px;object-fit:contain;border-radius:16px;">
-          <div class="cbig" id="cbig"><div class="cbl"></div><div class="cbl cbl2"></div></div>
+        <div style="display:flex;align-items:center;gap:1.2rem;">
+          <div class="ciw" id="ciw">
+            <div id="cem" style="font-size:10rem;display:flex;align-items:center;justify-content:center;"></div>
+            <img id="cim" src="" alt="" style="display:none;width:290px;height:290px;object-fit:contain;border-radius:16px;">
+            <div class="cbig" id="cbig"><div class="cbl"></div><div class="cbl cbl2"></div></div>
+          </div>
+          <!-- TIMER cercle grand à côté du picto -->
+          <div class="tmr-display" id="tmr-display">
+            <div class="tmr-ring-wrap">
+              <svg width="160" height="160" viewBox="0 0 160 160">
+                <circle class="tmr-circle-bg" cx="80" cy="80" r="68"/>
+                <circle class="tmr-circle-fg" id="tmr-fg" cx="80" cy="80" r="68"
+                  stroke-dasharray="427.26" stroke-dashoffset="0"/>
+              </svg>
+              <div class="tmr-text" id="tmr-text">--:--</div>
+            </div>
+            <button class="tmr-stop" onclick="stopTimer();event.stopPropagation();">✕ Arrêter</button>
+          </div>
         </div>
         <div class="clb" id="clb">–</div>
         <div class="hint" id="hint">Toucher pour lire le nom</div>
+      </div>
+      <!-- Saisie du timer sous les boutons -->
+      <div class="timer-wrap" id="timer-wrap" onclick="event.stopPropagation()">
+        <div class="timer-input-row" id="timer-input-row">
+          <input class="tmr-input" id="tmr-input" type="number" min="1" max="180" value="10" placeholder="min" onclick="event.stopPropagation()">
+          <span class="tmr-label">min</span>
+          <button class="tmr-start" onclick="startTimerCustom();event.stopPropagation();">⏱ Démarrer</button>
+        </div>
       </div>
       <div class="pbbtns">
         <button class="pb pbp" onclick="prevT()">◀ Préc.</button>
@@ -297,7 +335,7 @@ function gS(id,skipInit){
 }
 
 function restart(){
-  done=[];skipped=[];tapped=false;
+  done=[];skipped=[];tapped=false;stopTimer();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('P').classList.add('on');
   renderPlay();
@@ -345,7 +383,7 @@ function curTask(){return remaining()[0];}
 
 function renderPlay(){
   const rem=remaining();
-  if(!rem.length){gS('D');return;}
+  if(!rem.length){stopTimer();gS('D',true);return;}
   const cur=rem[0];
   const total=seq.filter((_,i)=>!skipped.includes(i)).length;
   const pct=total>0?Math.round((done.length/total)*100):0;
@@ -364,7 +402,7 @@ function renderPlay(){
     d.innerHTML=thumbSm(t,40)+'<div class="tl">'+t.l+'</div><div class="xov"><div class="xl"></div><div class="xl xl2"></div></div>';
     dol.appendChild(d);
   });
-  tapped=false;
+  tapped=false;transitioning=false;stopTimer();
   document.getElementById('hint').textContent='Toucher pour lire le nom';
   document.getElementById('ciw').className='ciw';
   document.getElementById('cbig').className='cbig';
@@ -388,32 +426,118 @@ function thumbSm(t,sz){
   return '<div style="font-size:'+(sz>44?'2.1':'1.75')+'rem;width:'+sz+'px;height:'+sz+'px;display:flex;align-items:center;justify-content:center;">'+(t.e||'📌')+'</div>';
 }
 
+let transitioning=false;
+
 function tap(){
+  if(transitioning)return;
   const ct=curTask();if(!ct)return;
   if(!tapped){
-    tapped=true;spk(ct.l);
+    tapped=true;
+    spk(ct.l);
     document.getElementById('hint').textContent='Toucher à nouveau pour terminer';
   }else{
+    transitioning=true;
+    tapped=false;
     document.getElementById('ciw').classList.add('cx');
     document.getElementById('cbig').classList.add('on');
     spk('Fini');
-    setTimeout(()=>{done.push(ct.oi);tapped=false;renderPlay();},650);
+    setTimeout(()=>{
+      done.push(ct.oi);
+      transitioning=false;
+      renderPlay();
+    },650);
   }
 }
 
-function skipT(){const t=curTask();if(!t)return;skipped.push(t.oi);spk('Annulé');tapped=false;renderPlay();}
+function skipT(){
+  if(transitioning)return;
+  const t=curTask();if(!t)return;
+  transitioning=true;
+  skipped.push(t.oi);spk('Annulé');tapped=false;
+  setTimeout(()=>{transitioning=false;renderPlay();},400);
+}
 function prevT(){
+  if(transitioning)return;
   if(!done.length)return;
   const lastDoneIdx=done.pop();
   skipped=skipped.filter(si=>si<lastDoneIdx);
   tapped=false;renderPlay();
 }
-function goF(){done=[];skipped=[];tapped=false;renderPlay();}
-function restart(){
-  done=[];skipped=[];tapped=false;
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.getElementById('P').classList.add('on');
-  renderPlay();
+function goF(){done=[];skipped=[];tapped=false;stopTimer();renderPlay();}
+
+// ── TIMER ──
+let timerInterval=null;
+let timerTotal=0;
+let timerLeft=0;
+const CIRC=427.26; // 2*PI*68
+
+function startTimerCustom(){
+  const val=parseInt(document.getElementById('tmr-input').value);
+  if(!val||val<1||val>180){return;}
+  startTimer(val);
+}
+
+function startTimer(minutes){
+  stopTimer();
+  timerTotal=minutes*60;
+  timerLeft=timerTotal;
+  document.getElementById('tmr-display').classList.add('on');
+  document.getElementById('timer-input-row').style.display='none';
+  updateTimerDisplay();
+  timerInterval=setInterval(()=>{
+    timerLeft--;
+    if(timerLeft<=0){
+      timerLeft=0;
+      updateTimerDisplay();
+      stopTimer();
+      playBip();
+      if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
+      return;
+    }
+    updateTimerDisplay();
+  },1000);
+}
+
+function updateTimerDisplay(){
+  const m=Math.floor(timerLeft/60);
+  const s=timerLeft%60;
+  const txt=m>0?(String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')):(s+'s');
+  const pct=timerTotal>0?timerLeft/timerTotal:0;
+  document.getElementById('tmr-fg').style.strokeDashoffset=CIRC*(1-pct);
+  document.getElementById('tmr-text').textContent=txt;
+}
+
+function playBip(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const endTime=ctx.currentTime+0.95;
+    [0,0.35,0.7].forEach(t=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='sine';osc.frequency.setValueAtTime(880,ctx.currentTime+t);
+      gain.gain.setValueAtTime(0.6,ctx.currentTime+t);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.25);
+      osc.start(ctx.currentTime+t);
+      osc.stop(ctx.currentTime+t+0.25);
+    });
+    // Fermer le contexte audio après la fin des bips pour libérer la mémoire
+    setTimeout(()=>{try{ctx.close();}catch(e){}},1200);
+  }catch(e){}
+}
+
+function stopTimer(){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  timerLeft=0;timerTotal=0;
+  const disp=document.getElementById('tmr-display');
+  const row=document.getElementById('timer-input-row');
+  if(disp)disp.classList.remove('on');
+  if(row)row.style.display='flex';
+  const fg=document.getElementById('tmr-fg');
+  if(fg)fg.style.strokeDashoffset=0;
+  const tx=document.getElementById('tmr-text');
+  if(tx)tx.textContent='--:--';
+  // Ne pas effacer la valeur du champ — l'éducateur n'a pas à la retaper à chaque tâche
 }
 
 // ── SYNTHÈSE VOCALE — compatible WebView Android / APK ──
@@ -457,10 +581,10 @@ function unlockSpeech(){
 
 function spk(txt){
   if(!window.speechSynthesis||!txt)return;
+  const wasUnlocked=spkUnlocked;
   unlockSpeech();
   try{window.speechSynthesis.cancel();}catch(e){}
-  // Délai réduit à 80ms — suffisant après unlock initial
-  const delay=spkUnlocked?80:300;
+  const delay=wasUnlocked?80:300;
   setTimeout(()=>{
     try{
       const u=new SpeechSynthesisUtterance(txt);
@@ -500,7 +624,10 @@ function renderSeq(){
   seq.forEach((t,i)=>{
     const d=document.createElement('div');d.className='ei';d.draggable=true;d.dataset.i=i;
     const th=t.img?'<div class="eth"><img src="'+t.img+'"></div>':'<div class="eth">'+t.e+'</div>';
-    d.innerHTML='<div class="dh">⠿</div>'+th+'<div class="eii"><div class="enum">Tâche '+(i+1)+'</div><input class="eni" value="'+t.l+'" onchange="rename('+i+',this.value)"></div><button class="edb" onclick="remT('+i+')">✕</button>';
+    d.innerHTML='<div class="dh">⠿</div>'+th+'<div class="eii"><div class="enum">Tâche '+(i+1)+'</div><input class="eni" data-idx="'+i+'" value="'+t.l+'"></div><button class="edb" data-idx="'+i+'">✕</button>';
+    // Listeners propres sans index baked-in
+    d.querySelector('.eni').addEventListener('change',function(){rename(+this.dataset.idx,this.value);});
+    d.querySelector('.edb').addEventListener('click',function(){remT(+this.dataset.idx);});
     d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',i);d.classList.add('dg');});
     d.addEventListener('dragend',()=>d.classList.remove('dg'));
     d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('do');});
@@ -677,7 +804,11 @@ function renderLib(){
 
 function loadS(id){
   const s=(lsParse('edtv_scheds')||[]).find(x=>x.id===id);if(!s)return;
-  seq=JSON.parse(JSON.stringify(s.seq));saveSeq();toast('✅ Chargé : '+s.name);gS('P');
+  try{custPic=lsParse('edtv_custom')||[];}catch{custPic=[];}
+  seq=JSON.parse(JSON.stringify(s.seq));
+  saveSeq();
+  toast('✅ Chargé : '+s.name);
+  gS('P');
 }
 function delS(id){
   lsSave('edtv_scheds',(lsParse('edtv_scheds')||[]).filter(x=>x.id!==id));renderLib();toast('Supprimé');
